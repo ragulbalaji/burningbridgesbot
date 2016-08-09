@@ -2,7 +2,9 @@
 A Bot that plays Burning Bridges (something like Truth or Dare) on Telegram!
 ***Project by @ragulbalaji &amp; @hojiefeng***
 
-<center><img src="assets/icon.png" width="400"></center>
+<p align="center">
+	<img src="assets/icon.png" width="400" alt="bbicon">
+</p>
 
 ### **[ Players ]** Playing
 1. Invite the @burningbridgesbot into your group
