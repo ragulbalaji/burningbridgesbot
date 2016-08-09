@@ -21,10 +21,8 @@ A Bot that plays Burning Bridges (something like Truth or Dare) on Telegram!
 ### **[ Developers ]** Install / Running
 1. `npm install` in this project's working directory
 
-2. Get a HTTP API access token from @botfather on Telegram
+2. Get a HTTP API access token from @botfather on Telegram and place it on line 0 in `token.txt`
 
-3. Place this access token as the parameter in `server.js` when init of telegram bot
+3. ???
 
-4. ???
-
-5. Profit!
+4. Profit!
