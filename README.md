@@ -1,5 +1,4 @@
 # Burning Bridges Bot
-<<<<<<< HEAD
 A Bot that plays Burning Bridges (something like Truth or Dare) on Telegram!
 *Project by @ragulbalaji &amp; @hojiefeng*
 
@@ -16,18 +15,12 @@ A Bot that plays Burning Bridges (something like Truth or Dare) on Telegram!
 
 
 ### **[ Developers ]** Install / Running
-1. Get a HTTP API access token from @botfather on Telegram
+1. `npm install` in this project's working directory
 
-2. Place this access token as the parameter in `server.js` when init of telegram bot
-=======
-A Bot for playing Burning Bridges (vaguely like True or Dare) on Telegram
+2. Get a HTTP API access token from @botfather on Telegram
 
-### Install / Running
-1. Get a HTTP API access token from @botfather on Telegram
+3. Place this access token as the parameter in `server.js` when init of telegram bot
 
-2. Place this access token as the parameter in ```server.js``` when init of telegram bot
->>>>>>> origin/master
+4. ???
 
-3. ???
-
-4. Profit!
+5. Profit!
