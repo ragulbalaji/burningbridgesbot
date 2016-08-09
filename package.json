@@ -1,0 +1,15 @@
+{
+  "name": "burningbridgesbot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "dependencies": {
+    "telegram-node-bot": "^3.0.12"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ragul Balaji",
+  "license": "MIT"
+}
