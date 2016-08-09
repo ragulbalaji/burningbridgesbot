@@ -4,6 +4,7 @@
   "description": "",
   "main": "server.js",
   "dependencies": {
+    "chance.js": "0.0.1",
     "node-telegram-bot-api": "^0.23.3"
   },
   "devDependencies": {},
