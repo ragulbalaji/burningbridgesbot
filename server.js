@@ -69,8 +69,12 @@ bot.onText(/^\/start$/, function(msg, match) {
 
     users[user.id] = user //
 
-    if (msg.chat.type == "group") bot.sendMessage(msg.chat.id, "Burning Bridges Group Initialized!");
-    else bot.sendMessage(msg.chat.id, "Private Chat Initialized :)");
+    if (msg.chat.type == "group") {
+        bot.sendMessage(msg.chat.id, "Burning Bridges Group Initialized!");
+    } else {
+        bot.sendMessage(msg.chat.id, "Burning Bridges Private Chat Initialized :)");
+		  bot.sendDocument(msg.chat.id, "assets/welcome.gif");
+    }
     console.log(msg);
     //bot.sendMessage(user.id, '/start');
 });
@@ -204,6 +208,27 @@ bot.on('callback_query', function(msg) {
 bot.on('message', function(msg) {
     users[msg.from.id] = msg.from;
     //  console.log(msg);
+});
+
+bot.onText(/\/cuskey/, function(msg) {
+    var chatId = msg.chat.id;
+    var opts = {
+        reply_to_message_id: msg.message_id,
+        reply_markup: JSON.stringify({
+            keyboard: [
+                ['✊', '✋', '✌️']
+            ],
+            one_time_keyboard: true,
+            resize_keyboard: true
+        })
+    };
+    bot.sendMessage(chatId, 'ROCK-PAPER-SCISSORS!', opts)
+        .then(function(sent) {
+            var chatId = sent.chat.id;
+            var messageId = sent.message_id;
+            console.log(chatId, messageId);
+
+        });
 });
 /*bot.on('message', function (msg) {
   var chatId = msg.chat.id;
