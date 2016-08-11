@@ -1,5 +1,6 @@
 var TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
+var chance = new require('chance')();
 
 var token = fs.readFileSync('token.txt').toString().split('\n')[0];
 // Setup polling way
@@ -59,7 +60,7 @@ function shuffle(a) {
 }
 
 function compose_name(user) {
-    return user.first_name + ' ' + user.last_name;
+    return (user.first_name || "") + ' ' + (user.last_name || "");
 }
 
 // Matches /echo [whatever]
@@ -69,17 +70,17 @@ bot.onText(/^\/start$/, function(msg, match) {
 
     users[user.id] = user //
 
-    if (msg.chat.type == "group") {
-        bot.sendMessage(msg.chat.id, "Burning Bridges Group Initialized!");
+    if (msg.chat.type == "group" || msg.chat.type == "supergroup") {
+        //bot.sendMessage(msg.chat.id, "Burning Bridges Group Initialized!");
     } else {
         bot.sendMessage(msg.chat.id, "Burning Bridges Private Chat Initialized :)");
-		  bot.sendDocument(msg.chat.id, "assets/welcome.gif");
+        bot.sendDocument(msg.chat.id, "assets/welcome.gif");
     }
     console.log(msg);
     //bot.sendMessage(user.id, '/start');
 });
 
-bot.onText(/^\/startbb$/, function(msg, match) {
+bot.onText(/^\/startbb(.*)$/, function(msg, match) {
     if (msg.chat.type != "group" && msg.chat.type != "supergroup") //only can start in a group
     {
         bot.sendMessage(msg.chat.id, 'You can only start game in a group!');
@@ -91,7 +92,7 @@ bot.onText(/^\/startbb$/, function(msg, match) {
     }
     var user = msg.from;
     var chat = msg.chat;
-    bot.sendMessage(msg.chat.id, "Game started by *" + compose_name(user) + "*. Type /joinbb to participate 👻", {
+    bot.sendMessage(msg.chat.id, "Game started by *" + compose_name(user) + "*. Type /joinbb to participate 👻\nEnsure that you have /start privately with the bot!", {
         "parse_mode": "Markdown"
     });
     games[msg.chat.id] = games[msg.chat.id] || {}; //init game
@@ -126,7 +127,8 @@ bot.onText(/^\/joinbb(.*)$/, function(msg, match) {
 
 
 var questions = {};
-bot.onText(/^\/forcestart$/, function(msg, match) {
+var rpsgames = {};
+bot.onText(/^\/forcestart(.*)$/, function(msg, match) {
     if (msg.chat.type != "group" && msg.chat.type != "supergroup") //only can start in a group
     {
         bot.sendMessage(msg.chat.id, 'Only can start game in a group!');
@@ -136,6 +138,11 @@ bot.onText(/^\/forcestart$/, function(msg, match) {
         bot.sendMessage(msg.chat.id, 'No game here!');
         return;
     }
+    if (games[msg.chat.id] && games[msg.chat.id].playing == true) {
+        bot.sendMessage(msg.chat.id, 'Already started!');
+        return;
+    }
+    games[msg.chat.id].playing = true;
     var chat = msg.chat;
     var user = msg.user;
     var players = Object.keys(games[msg.chat.id].players);
@@ -144,72 +151,141 @@ bot.onText(/^\/forcestart$/, function(msg, match) {
         return;
     }
     games[chat.id].playerorder = players;
-    shuffle(players);
+
     var playerorder = "";
     for (var i = 0; i < players.length; i++) {
         playerorder += (i + 1).toString() + ". *" + compose_name(games[chat.id].players[players[i]]) + "*\n";
     }
-    bot.sendMessage(msg.chat.id, "Game Starting, Ordered Players are: \n" + playerorder, {
+    bot.sendMessage(msg.chat.id, "Game Starting, Players are: \n" + playerorder, {
         "parse_mode": "Markdown"
     });
 
-    oneMoreTotalPlay() //Stats
+    var numrounds = chance.integer({
+        min: 2,
+        max: 5
+    });
 
-    games[chat.id].counter = 0; //start at 0
+    for (var r = 0; r < numrounds; r++) {
+        bot.sendMessage(msg.chat.id, 'Starting Round ' + (r + 1) + ' of ' + numrounds);
+        oneMoreTotalPlay() //Stats
+        shuffle(players);
+        var playerz = [];
+        var numpairstochoose = chance.integer({
+            min: 1,
+            max: Math.floor(players.length / 2)
+        });
+        for (var j = 0; j < numpairstochoose; j++) {
+            askq(chat.id, players[j * 2], players[(j * 2) + 1]);
+        }
+        bot.sendMessage(msg.chat.id, 'I have chosen ' + numpairstochoose + ' pairs...');
+    }
+
+    //askq(chat.id, players[0], players[1]);
+
+    //"Round Ended, wanna play /oncemore or /end"
+});
+
+function askq(group, asker, pointer) {
     var opts = {
         reply_markup: JSON.stringify({
             force_reply: true
         })
-    };
-
-    bot.sendMessage(players[0], 'Ask <...> a Question!\nNote, you NEED to reply (tap & hold for options) to this message', opts) //ask the question
+    }
+    var players = games[group].playerorder;
+    bot.sendMessage(asker, 'Ask ' + compose_name(users[pointer]) + ' a Question!\nNote, you NEED to reply (tap & hold for options) to this message', opts) //ask the question
         .then(function(sent) {
             var chatId = sent.chat.id;
             var messageId = sent.message_id;
-            console.log(chatId, messageId);
             bot.onReplyToMessage(chatId, messageId, function(message) {
-                saveQuestions(message.text) // Just some NSA kinda wiretappin!
-                bot.sendMessage(chatId, 'You asked \'' + message.text + '\'');
-                bot.sendMessage(players[0], '<...> asked \'' + message.text + '\''); //TODO, REMEMBER TO SEND TO THE NEXT PLAYER
+                saveQuestions(compose_name(asker) + " >> " + message.text) // Just some NSA kinda wiretappin!
+                bot.sendMessage(chatId, 'Asked \'' + message.text + '\'');
+                bot.sendMessage(pointer, compose_name(users[asker]) + ' asked you "' + message.text + '"');
                 var playeroptions = [];
                 for (var i = 0; i < players.length; i++) {
-                    playeroptions.push([{
-                        text: compose_name(games[chat.id].players[players[i]]),
-                        callback_data: players[i]
-                    }]);
+                    if (players[i] != pointer)
+                        playeroptions.push([{
+                            text: compose_name(games[group].players[players[i]]),
+                            callback_data: players[i]
+                        }]);
                 }
                 console.log(playeroptions);
-                bot.sendMessage(players[0], 'Imma point at: ', {
+                bot.sendMessage(pointer, 'Imma point at: ', {
                         reply_markup: JSON.stringify({
                             inline_keyboard: playeroptions
                         })
                     })
                     .then(function(sent) {
                         questions[sent.message_id] = {
-                            group: chat.id,
-                            user: players[0]
+                            group: group,
+                            user: pointer,
+                            question: message.text,
+                            asker: asker
                         };
                     });
             });
         });
-    games[chat.id].active = false; //deactivate the game for now
-});
+}
 
+function rps(group, pointer, victim, asker, question) {
+    var opts = {
+        reply_markup: JSON.stringify({
+            keyboard: [
+                ['✊', '✋', '✌️']
+            ],
+            one_time_keyboard: true,
+            resize_keyboard: true
+        })
+    };
+    rpsgames[pointer] = {
+        vs: victim,
+        selected: -1,
+        role: 1,
+        group: group,
+        asker: asker,
+        question: question
+    };
+    rpsgames[victim] = {
+        vs: pointer,
+        selected: -1,
+        role: 0,
+        group: group
+    };
+    bot.sendMessage(pointer, 'ROCK-PAPER-SCISSORS with ' + compose_name(users[victim]) + '!', opts)
+        .then(function(sent) {
+            var chatId = sent.chat.id;
+            var messageId = sent.message_id;
+            console.log(chatId, messageId);
+
+        });
+    bot.sendMessage(victim, compose_name(users[pointer]) + ' pointed at you.\nROCK-PAPER-SCISSORS with him!', opts)
+        .then(function(sent) {
+            var chatId = sent.chat.id;
+            var messageId = sent.message_id;
+            console.log(chatId, messageId);
+
+        });
+}
 bot.on('callback_query', function(msg) {
     if (questions[msg.message.message_id]) //it a reply to a 'select a user' question
     {
-        bot.editMessageText('You selected ' + compose_name(users[parseInt(msg.data)]), {
+        var victim = parseInt(msg.data);
+        var pointer = msg.from.id;
+        bot.editMessageText('You selected ' + compose_name(users[victim]), {
             chat_id: msg.message.chat.id,
             message_id: msg.message.message_id
         });
+        bot.sendMessage(questions[msg.message.message_id].group, compose_name(msg.message.chat) + ' asked a question');
         bot.sendMessage(questions[msg.message.message_id].group, compose_name(msg.message.chat) + ' pointed to ' + compose_name(users[parseInt(msg.data)]));
+        var asker = questions[msg.message.message_id].asker;
+        var question = questions[msg.message.message_id].question;
+        rps(questions[msg.message.message_id].group, pointer, victim, asker, question);
+
+        questions[msg.message.message_id] = false;
     }
-});
-bot.on('message', function(msg) {
-    users[msg.from.id] = msg.from;
-    //  console.log(msg);
+    console.log(msg);
 });
 
+var rpse = ['✊', '✋', '✌️'];
 bot.onText(/\/cuskey/, function(msg) {
     var chatId = msg.chat.id;
     var opts = {
@@ -227,8 +303,73 @@ bot.onText(/\/cuskey/, function(msg) {
             var chatId = sent.chat.id;
             var messageId = sent.message_id;
             console.log(chatId, messageId);
-
+            bot.onReplyToMessage(chatId, messageId, function(msg) {
+                console.log(msg);
+                bot.sendMessage(chatId, 'Received ' + msg.text);
+            });
         });
+});
+
+bot.on('message', function(msg) {
+    users[msg.from.id] = msg.from;
+    var userid = msg.from.id;
+    if (rpsgames[userid] && rpsgames[userid].selected == -1) {
+        var ind = rpse.indexOf(msg.text);
+        if (ind == -1) {
+            bot.sendMessage(userid, 'Oi U think u haxor isit?');
+        }
+        rpsgames[userid].selected = ind;
+
+        bot.sendMessage(userid, 'You: ' + msg.text);
+        if (rpsgames[rpsgames[userid].vs].selected == -1) return;
+
+        var victim, pointer;
+        if (rpsgames[userid].role == 0) {
+            victim = userid;
+            pointer = rpsgames[userid].vs;
+        }
+        if (rpsgames[userid].role == 1) {
+            pointer = userid;
+            victim = rpsgames[userid].vs;
+        }
+
+        bot.sendMessage(victim, compose_name(users[pointer]) + ' selected: ' + rpse[rpsgames[pointer].selected]);
+        bot.sendMessage(pointer, compose_name(users[victim]) + ' selected: ' + rpse[rpsgames[victim].selected]);
+
+        var victim_s = rpsgames[victim].selected;
+        var pointer_s = rpsgames[pointer].selected;
+
+        if (victim_s == pointer_s) {
+            bot.sendMessage(victim, 'Draw, select again');
+            bot.sendMessage(pointer, 'Draw, select again');
+            rpsgames[victim].selected = -1;
+            rpsgames[pointer].selected = -1;
+            return;
+        }
+        var group = rpsgames[victim].group;
+        var asker = rpsgames[pointer].asker;
+        var question = rpsgames[pointer].question;
+        if ((victim_s == 0 && pointer_s == 2) ||
+            (victim_s == 1 && pointer_s == 0) ||
+            (victim_s == 2 && pointer_s == 1)) {
+            //victim wins
+            bot.sendMessage(victim, 'You win!');
+            bot.sendMessage(pointer, compose_name(users[victim]) + ' win!');
+
+            bot.sendMessage(group, compose_name(users[asker]) + "'s question is was\n'" + question + "'\nFor which " + compose_name(users[pointer]) + " pointed to " + compose_name(users[victim]));
+        } else if ((pointer_s == 0 && victim_s == 2) ||
+            (pointer_s == 1 && victim_s == 0) ||
+            (pointer_s == 2 && victim_s == 1)) {
+            //pointer wins
+            bot.sendMessage(pointer, 'You win!');
+            bot.sendMessage(victim, compose_name(users[pointer]) + ' win!');
+
+            bot.sendMessage(group, compose_name(users[pointer]) + "'s question remians a mystery 🤐.")
+        }
+        rpsgames[victim] = false;
+        rpsgames[pointer] = false;
+    }
+    //  console.log(msg);
 });
 /*bot.on('message', function (msg) {
   var chatId = msg.chat.id;
