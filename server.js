@@ -128,7 +128,7 @@ bot.onText(/^\/joinbb(.*)$/, function(msg, match) {
 
 var questions = {};
 var rpsgames = {};
-bot.onText(/^\/forcestart(.*)$/, function(msg, match) {
+bot.onText(/^\/forcestartbb(.*)$/, function(msg, match) {
     if (msg.chat.type != "group" && msg.chat.type != "supergroup") //only can start in a group
     {
         bot.sendMessage(msg.chat.id, 'Only can start game in a group!');
@@ -164,8 +164,8 @@ bot.onText(/^\/forcestart(.*)$/, function(msg, match) {
         min: 2,
         max: 5
     });
-
-    for (var r = 0; r < numrounds; r++) {
+numrounds = 1;
+    for (var r = 0; r < 1/*numrounds*/; r++) {
         bot.sendMessage(msg.chat.id, 'Starting Round ' + (r + 1) + ' of ' + numrounds);
         oneMoreTotalPlay() //Stats
         shuffle(players);
@@ -273,10 +273,10 @@ bot.on('callback_query', function(msg) {
         bot.editMessageText('You selected ' + compose_name(users[victim]), {
             chat_id: msg.message.chat.id,
             message_id: msg.message.message_id
-        });
-        bot.sendMessage(questions[msg.message.message_id].group, compose_name(msg.message.chat) + ' asked a question');
+        });        var asker = questions[msg.message.message_id].asker;
+
+        bot.sendMessage(questions[msg.message.message_id].group, compose_name(users[asker]) + ' asked a question');
         bot.sendMessage(questions[msg.message.message_id].group, compose_name(msg.message.chat) + ' pointed to ' + compose_name(users[parseInt(msg.data)]));
-        var asker = questions[msg.message.message_id].asker;
         var question = questions[msg.message.message_id].question;
         rps(questions[msg.message.message_id].group, pointer, victim, asker, question);
 
@@ -349,6 +349,7 @@ bot.on('message', function(msg) {
         var group = rpsgames[victim].group;
         var asker = rpsgames[pointer].asker;
         var question = rpsgames[pointer].question;
+
         if ((victim_s == 0 && pointer_s == 2) ||
             (victim_s == 1 && pointer_s == 0) ||
             (victim_s == 2 && pointer_s == 1)) {
@@ -364,7 +365,7 @@ bot.on('message', function(msg) {
             bot.sendMessage(pointer, 'You win!');
             bot.sendMessage(victim, compose_name(users[pointer]) + ' win!');
 
-            bot.sendMessage(group, compose_name(users[pointer]) + "'s question remians a mystery 🤐.")
+            bot.sendMessage(group, compose_name(users[asker]) + "'s question remains a mystery 🤐.")
         }
         rpsgames[victim] = false;
         rpsgames[pointer] = false;
