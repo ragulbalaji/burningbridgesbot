@@ -5,7 +5,7 @@
   "main": "server.js",
   "dependencies": {
     "chance": "^1.0.4",
-    "node-telegram-bot-api": "git+https://github.com/yagop/node-telegram-bot-api.git#pull/158/head"
+    "node-telegram-bot-api": "^0.23.3"
   },
   "devDependencies": {},
   "scripts": {

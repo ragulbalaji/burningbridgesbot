@@ -72,7 +72,7 @@ bot.onText(/^\/start$/, function(msg, match) {
 
     if (msg.chat.type == "group" || msg.chat.type == "supergroup") {
         //bot.sendMessage(msg.chat.id, "Burning Bridges Group Initialized!");
-		  bot.sendMessage(msg.chat.id, "DO /start in a PRIVATE chat with @burningbridgesbot!");
+        bot.sendMessage(msg.chat.id, "DO /start in a PRIVATE chat with @burningbridgesbot!");
     } else {
         bot.sendMessage(msg.chat.id, "Burning Bridges Private Chat Initialized :)");
         bot.sendDocument(msg.chat.id, "assets/welcome.gif");
@@ -165,17 +165,18 @@ bot.onText(/^\/forcestartbb(.*)$/, function(msg, match) {
         min: 2,
         max: 5
     });
-numrounds = 1;
-    for (var r = 0; r < 1/*numrounds*/; r++) {
+    numrounds = 1;
+    for (var r = 0; r < 1 /*numrounds*/ ; r++) {
         bot.sendMessage(msg.chat.id, 'Starting Round ' + (r + 1) + ' of ' + numrounds);
         oneMoreTotalPlay() //Stats
         shuffle(players);
         var playerz = [];
         var numpairstochoose = chance.integer({
             min: 1,
-            max: Math.max(Math.floor(players.length / 2),1)
+            max: Math.max(Math.floor(players.length / 2), 1)
         });
         for (var j = 0; j < numpairstochoose; j++) {
+			  console.log("Chosen pair is "+compose_name(users[players[j * 2]])+" & "+compose_name(users[players[(j * 2) + 1]]))
             askq(chat.id, players[j * 2], players[(j * 2) + 1]);
         }
         bot.sendMessage(msg.chat.id, 'I have chosen ' + numpairstochoose + ' pairs...');
@@ -274,7 +275,8 @@ bot.on('callback_query', function(msg) {
         bot.editMessageText('You selected ' + compose_name(users[victim]), {
             chat_id: msg.message.chat.id,
             message_id: msg.message.message_id
-        });        var asker = questions[msg.message.message_id].asker;
+        });
+        var asker = questions[msg.message.message_id].asker;
 
         bot.sendMessage(questions[msg.message.message_id].group, compose_name(users[asker]) + ' asked a question');
         bot.sendMessage(questions[msg.message.message_id].group, compose_name(msg.message.chat) + ' pointed to ' + compose_name(users[parseInt(msg.data)]));
