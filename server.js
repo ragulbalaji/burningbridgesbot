@@ -72,6 +72,7 @@ bot.onText(/^\/start$/, function(msg, match) {
 
     if (msg.chat.type == "group" || msg.chat.type == "supergroup") {
         //bot.sendMessage(msg.chat.id, "Burning Bridges Group Initialized!");
+		  bot.sendMessage(msg.chat.id, "DO /start in a PRIVATE chat with @burningbridgesbot!");
     } else {
         bot.sendMessage(msg.chat.id, "Burning Bridges Private Chat Initialized :)");
         bot.sendDocument(msg.chat.id, "assets/welcome.gif");
@@ -146,7 +147,7 @@ bot.onText(/^\/forcestart(.*)$/, function(msg, match) {
     var chat = msg.chat;
     var user = msg.user;
     var players = Object.keys(games[msg.chat.id].players);
-    if (players.length < 1) { // Rmb to change to < 2
+    if (players.length < 2) { // Rmb to change to < 2
         bot.sendMessage(msg.chat.id, 'Need > 1 players! 😈 Imma not let you play with ' + players.length);
         return;
     }
@@ -172,7 +173,7 @@ bot.onText(/^\/forcestart(.*)$/, function(msg, match) {
         var playerz = [];
         var numpairstochoose = chance.integer({
             min: 1,
-            max: Math.floor(players.length / 2)
+            max: Math.max(Math.floor(players.length / 2),1)
         });
         for (var j = 0; j < numpairstochoose; j++) {
             askq(chat.id, players[j * 2], players[(j * 2) + 1]);
