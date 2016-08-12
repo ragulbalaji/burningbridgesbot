@@ -1,6 +1,7 @@
 var TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
 var chance = new require('chance')();
+var adage = require('adage');
 
 var token = fs.readFileSync('token.txt').toString().split('\n')[0];
 // Setup polling way
@@ -13,8 +14,16 @@ var games = {};
 
 // START of STATISTICSjs
 var stats = {
+    gameStartAttempts: 0,
+    gameStarts: 0,
+    joinedPlayers: 0,
     totalPlays: 0,
-    lastupdatetime: Date.now(),
+    questionsAsked: 0,
+    questionsRevealed: 0,
+    questionsHidden: 0,
+    totalPointedAt: 0,
+    totalRounds: 0,
+    lastupdatetime: Date()
 };
 
 loadStats();
@@ -24,26 +33,24 @@ function loadStats() {
         if (err) {
             console.error(err);
         }
-        console.log("Stats LOADED >> " + data)
         stats = JSON.parse(data);
+        console.log("Stats LOADED from " + stats.lastupdatetime)
     });
 }
 
 function saveStats() {
-    stats.lastupdatetime = Date.now();
+    stats.lastupdatetime = Date().toString();
     var save = JSON.stringify(stats)
-    console.log("Stats SAVED >> " + save)
     fs.writeFile("assets/stats.txt", save);
+    console.log("Stats SAVED as " + stats.lastupdatetime)
 }
 
 function saveQuestions(qn) {
     console.log("Question SAVED >> " + qn)
-    fs.appendFile("assets/questionsasked.txt", Date.now().toString() + " : " + qn.toString() + "\n");
-}
-
-function oneMoreTotalPlay() {
-    stats.totalPlays++;
-    saveStats()
+    fs.appendFile("assets/questionsasked.txt", Date().toString() + " - " + qn.toString() + "\n");
+    
+    stats.questionsAsked++;
+    saveStats();
 }
 
 // END of STATISTICSjs
@@ -96,9 +103,15 @@ bot.onText(cmd_regex('startbb'), function(msg, match) {
     }
     var user = msg.from;
     var chat = msg.chat;
-    bot.sendMessage(msg.chat.id, "Game started by *" + compose_name(user) + "*. Type /joinbb to participate 👻\nEnsure that you have /start privately with the bot!", {
+    bot.sendMessage(msg.chat.id, "Game #"+stats.gameStarts+" started by *" + compose_name(user) + "*. Type /joinbb to participate 👻\nEnsure that you have /start privately with @burningbridgesbot!", {
         "parse_mode": "Markdown"
     });
+    console.log("Game Start Attempt by "+compose_name(user)+" in "+chat.id);
+   
+    stats.gameStartAttempts++; 
+    stats.joinedPlayers++; 
+    saveStats()
+    
     games[msg.chat.id] = games[msg.chat.id] || {}; //init game
     games[msg.chat.id].active = 1; //game is active
     games[msg.chat.id].players = {}; //array of players
@@ -124,9 +137,13 @@ bot.onText(cmd_regex('joinbb'), function(msg, match) {
     games[msg.chat.id].players[msg.from.id] = msg.from;
     var user = msg.from;
     var chat = msg.chat;
-    bot.sendMessage(chat.id, "*" + compose_name(user) + "* joined", {
+    bot.sendMessage(chat.id, "*" + compose_name(user) + "* joined. "+Object.keys(games[msg.chat.id].players).length+" of min 3 needed.", {
         "parse_mode": "Markdown"
     });
+    console.log(compose_name(user)+" joined game in "+chat.id);
+    
+    stats.joinedPlayers++; 
+    saveStats()
 });
 
 
@@ -172,7 +189,9 @@ bot.onText(cmd_regex('forcestartbb'), function(msg, match) {
     games[chat.id].totalrounds = numrounds;
     games[chat.id].roundsleft = numrounds;
 
-    oneMoreTotalPlay() //Stats
+    stats.gameStarts++;  //Stats
+    saveStats()
+    
     startround(chat.id);
 
     //askq(chat.id, players[0], players[1]);
@@ -182,7 +201,13 @@ bot.onText(cmd_regex('forcestartbb'), function(msg, match) {
 function startround(group)
 {
   games[group].roundsleft--;
-  bot.sendMessage(group, 'Starting Round ' + (games[group].totalrounds - games[group].roundsleft) + ' of ' + games[group].totalrounds);
+  bot.sendMessage(group, '*Starting Round ' + (games[group].totalrounds - games[group].roundsleft) + ' of ' + games[group].totalrounds+"*",{
+        "parse_mode": "Markdown"
+    });
+ 
+  stats.totalRounds++; 
+  saveStats()
+ 
   var players = games[group].playerorder;
   shuffle(players);
   var playerz = [];
@@ -194,7 +219,12 @@ function startround(group)
   console.log("Chosen pair is "+compose_name(users[players[j * 2]])+" & "+compose_name(users[players[(j * 2) + 1]]))
       askq(group, players[j * 2], players[(j * 2) + 1]);
   }
-  bot.sendMessage(group, 'I have chosen ' + numpairstochoose + ' pairs...');
+  bot.sendMessage(group, 'I have chosen ' + numpairstochoose + ' pairs... Check my private message with you.');
+  adage({}, function(err, a) {
+  	 bot.sendMessage(group,'_While waiting here have an adage:\n"'+a+'"_',{
+        "parse_mode": "Markdown"
+    });
+	});
 }
 function askq(group, asker, pointer) {
     var opts = {
@@ -203,12 +233,12 @@ function askq(group, asker, pointer) {
         })
     }
     var players = games[group].playerorder;
-    bot.sendMessage(asker, 'Ask ' + compose_name(users[pointer]) + ' a Question!\nNote, you NEED to reply (tap & hold for options) to this message', opts) //ask the question
+    bot.sendMessage(asker, '🤓😎😇 Ask ' + compose_name(users[pointer]) + ' a Question!\nNote, you NEED to reply (tap & hold for options) to this message', opts) //ask the question
         .then(function(sent) {
             var chatId = sent.chat.id;
             var messageId = sent.message_id;
             bot.onReplyToMessage(chatId, messageId, function(message) {
-                saveQuestions(compose_name(asker) + " >> " + message.text) // Just some NSA kinda wiretappin!
+                saveQuestions(compose_name(users[asker]) + " asked "+compose_name(users[pointer])+" >> " + message.text) // Just some NSA kinda wiretappin!
                 bot.sendMessage(chatId, 'Asked \'' + message.text + '\'');
                 bot.sendMessage(pointer, compose_name(users[asker]) + ' asked you "' + message.text + '"');
                 var playeroptions = [];
@@ -275,6 +305,9 @@ function rps(group, pointer, victim, asker, question) {
             console.log(chatId, messageId);
 
         });
+        
+         stats.totalPointedAt++;
+    saveStats();
 }
 bot.on('callback_query', function(msg) {
     if (questions[msg.message.message_id]) //it a reply to a 'select a user' question
@@ -328,7 +361,7 @@ bot.on('message', function(msg) {
     if (rpsgames[userid] && rpsgames[userid].selected == -1) { // on reply to a rock paper scissors question
         var ind = rpse.indexOf(msg.text);
         if (ind == -1) {
-            bot.sendMessage(userid, 'Oi U think u haxor isit?');
+            bot.sendMessage(userid, "Don't send random stuff to me ( like a H4X0R ).");
         }
         rpsgames[userid].selected = ind;
 
@@ -352,8 +385,10 @@ bot.on('message', function(msg) {
         var pointer_s = rpsgames[pointer].selected;
 
         if (victim_s == pointer_s) {
-            bot.sendMessage(victim, 'Draw, select again');
-            bot.sendMessage(pointer, 'Draw, select again');
+            setTimeout(function(a){bot.sendMessage(a, 'Draw, select again');} , 700, victim);
+            setTimeout(function(a){bot.sendMessage(a, 'Draw, select again');} , 700, pointer);
+            //bot.sendMessage(victim, 'Draw, select again');
+            //bot.sendMessage(pointer, 'Draw, select again');
             rpsgames[victim].selected = -1;
             rpsgames[pointer].selected = -1;
             return;
@@ -369,7 +404,9 @@ bot.on('message', function(msg) {
             bot.sendMessage(victim, 'You win!');
             bot.sendMessage(pointer, compose_name(users[victim]) + ' win!');
 
-            bot.sendMessage(group, compose_name(users[asker]) + "'s question is was\n'" + question + "'\nFor which " + compose_name(users[pointer]) + " pointed to " + compose_name(users[victim]));
+            bot.sendMessage(group, compose_name(users[asker]) + "'s question was\n'" + question + "'\nFor which " + compose_name(users[pointer]) + " pointed to " + compose_name(users[victim]));
+            stats.questionsRevealed++;
+    			saveStats();
         } else if ((pointer_s == 0 && victim_s == 2) ||
             (pointer_s == 1 && victim_s == 0) ||
             (pointer_s == 2 && victim_s == 1)) {
@@ -378,6 +415,8 @@ bot.on('message', function(msg) {
             bot.sendMessage(victim, compose_name(users[pointer]) + ' win!');
 
             bot.sendMessage(group, compose_name(users[asker]) + "'s question remains a mystery 🤐.")
+        		stats.questionsHidden++;
+    			saveStats();
         }
         rpsgames[victim] = false;
         rpsgames[pointer] = false;
@@ -389,10 +428,12 @@ bot.on('message', function(msg) {
           //GAME really ENDED
           games[group] = {active: false};
           bot.sendMessage(group, "Game has ended!");
+          stats.totalPlays++;
+          saveStats()
         }
         else
         {
-          startround(group);
+          setTimeout(startround, 1000, group);
         }
     }
     //  console.log(msg);

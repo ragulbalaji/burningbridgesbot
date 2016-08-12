@@ -4,6 +4,7 @@
   "description": "",
   "main": "server.js",
   "dependencies": {
+    "adage": "^1.0.2",
     "chance": "^1.0.4",
     "node-telegram-bot-api": "^0.23.3"
   },
