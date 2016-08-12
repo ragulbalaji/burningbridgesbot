@@ -1,0 +1,6 @@
+{
+  "name": "Burning Bridges Bot",
+  "tagline": "A Bot for playing Burning Bridges (vaguely like True or Dare) on Telegram",
+  "body": "# Burning Bridges Bot\r\nA Bot that plays Burning Bridges (something like Truth or Dare) on Telegram!\r\n\r\n***Project by @ragulbalaji &amp; @hojiefeng***\r\n\r\n<p align=\"center\">\r\n\t<img src=\"https://raw.githubusercontent.com/ragulbalaji/burningbridgesbot/master/assets/icon.png\" width=\"400\" alt=\"bbicon\">\r\n</p>\r\n\r\n### **[ Players ]** Playing\r\n1. Invite the @burningbridgesbot into your group\r\n\r\n2. Get everyone in the group to `/start` with the bot privately\r\n\r\n3. Someone in the group initiates the `/startbb` process\r\n\r\n4. Members have 60 seconds to `/joinbb` the game\r\n\r\n5. Game Starts; Have Fun!\r\n\r\n\r\n### **[ Developers ]** Install / Running\r\n1. `npm install` in this project's working directory\r\n\r\n2. Get a HTTP API access token from @botfather on Telegram and place it on line 0 in `token.txt`\r\n\r\n3. ???\r\n\r\n4. Profit!\r\n",
+  "note": "Don't delete this file! It's used internally to help with page regeneration."
+}
