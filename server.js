@@ -58,13 +58,16 @@ function shuffle(a) {
         a[j] = x;
     }
 }
-
+function cmd_regex(cmd)
+{
+  return new RegExp("^\/(" + cmd + ")+(\@burningbridgesbot)?$","g");
+}
 function compose_name(user) {
     return (user.first_name || "") + ' ' + (user.last_name || "");
 }
 
 // Matches /echo [whatever]
-bot.onText(/^\/start$/, function(msg, match) {
+bot.onText(cmd_regex('start'), function(msg, match) {
     var user = msg.from;
     console.log(user.last_name + ' ' + user.first_name + ' started'); //lets assume asian names first
 
@@ -81,7 +84,7 @@ bot.onText(/^\/start$/, function(msg, match) {
     //bot.sendMessage(user.id, '/start');
 });
 
-bot.onText(/^\/startbb(.*)$/, function(msg, match) {
+bot.onText(cmd_regex('startbb'), function(msg, match) {
     if (msg.chat.type != "group" && msg.chat.type != "supergroup") //only can start in a group
     {
         bot.sendMessage(msg.chat.id, 'You can only start game in a group!');
@@ -103,7 +106,7 @@ bot.onText(/^\/startbb(.*)$/, function(msg, match) {
     games[msg.chat.id].players[msg.from.id] = msg.from; // add this dude in first
 });
 
-bot.onText(/^\/joinbb(.*)$/, function(msg, match) {
+bot.onText(cmd_regex('joinbb'), function(msg, match) {
     if (msg.chat.type != "group" && msg.chat.type != "supergroup") //only can start in a group
     {
         bot.sendMessage(msg.chat.id, 'Only can start games in a group!');
@@ -129,7 +132,7 @@ bot.onText(/^\/joinbb(.*)$/, function(msg, match) {
 
 var questions = {};
 var rpsgames = {};
-bot.onText(/^\/forcestartbb(.*)$/, function(msg, match) {
+bot.onText(cmd_regex('forcestartbb'), function(msg, match) {
     if (msg.chat.type != "group" && msg.chat.type != "supergroup") //only can start in a group
     {
         bot.sendMessage(msg.chat.id, 'Only can start game in a group!');
@@ -165,28 +168,34 @@ bot.onText(/^\/forcestartbb(.*)$/, function(msg, match) {
         min: 2,
         max: 5
     });
-    numrounds = 1;
-    for (var r = 0; r < 1 /*numrounds*/ ; r++) {
-        bot.sendMessage(msg.chat.id, 'Starting Round ' + (r + 1) + ' of ' + numrounds);
-        oneMoreTotalPlay() //Stats
-        shuffle(players);
-        var playerz = [];
-        var numpairstochoose = chance.integer({
-            min: 1,
-            max: Math.max(Math.floor(players.length / 2), 1)
-        });
-        for (var j = 0; j < numpairstochoose; j++) {
-			  console.log("Chosen pair is "+compose_name(users[players[j * 2]])+" & "+compose_name(users[players[(j * 2) + 1]]))
-            askq(chat.id, players[j * 2], players[(j * 2) + 1]);
-        }
-        bot.sendMessage(msg.chat.id, 'I have chosen ' + numpairstochoose + ' pairs...');
-    }
+
+    games[chat.id].totalrounds = numrounds;
+    games[chat.id].roundsleft = numrounds;
+
+    oneMoreTotalPlay() //Stats
+    startround(chat.id);
 
     //askq(chat.id, players[0], players[1]);
 
     //"Round Ended, wanna play /oncemore or /end"
 });
-
+function startround(group)
+{
+  games[group].roundsleft--;
+  bot.sendMessage(group, 'Starting Round ' + (games[group].totalrounds - games[group].roundsleft) + ' of ' + games[group].totalrounds);
+  var players = games[group].playerorder;
+  shuffle(players);
+  var playerz = [];
+  var numpairstochoose = chance.integer({
+      min: 1,
+      max: Math.max(Math.floor(players.length / 2), 1)
+  });
+  for (var j = 0; j < numpairstochoose; j++) {
+  console.log("Chosen pair is "+compose_name(users[players[j * 2]])+" & "+compose_name(users[players[(j * 2) + 1]]))
+      askq(group, players[j * 2], players[(j * 2) + 1]);
+  }
+  bot.sendMessage(group, 'I have chosen ' + numpairstochoose + ' pairs...');
+}
 function askq(group, asker, pointer) {
     var opts = {
         reply_markup: JSON.stringify({
@@ -316,7 +325,7 @@ bot.onText(/\/cuskey/, function(msg) {
 bot.on('message', function(msg) {
     users[msg.from.id] = msg.from;
     var userid = msg.from.id;
-    if (rpsgames[userid] && rpsgames[userid].selected == -1) {
+    if (rpsgames[userid] && rpsgames[userid].selected == -1) { // on reply to a rock paper scissors question
         var ind = rpse.indexOf(msg.text);
         if (ind == -1) {
             bot.sendMessage(userid, 'Oi U think u haxor isit?');
@@ -372,6 +381,19 @@ bot.on('message', function(msg) {
         }
         rpsgames[victim] = false;
         rpsgames[pointer] = false;
+
+        //GAME HAS ENDED here
+
+        if(games[group].roundsleft == 0)
+        {
+          //GAME really ENDED
+          games[group] = {active: false};
+          bot.sendMessage(group, "Game has ended!");
+        }
+        else
+        {
+          startround(group);
+        }
     }
     //  console.log(msg);
 });
