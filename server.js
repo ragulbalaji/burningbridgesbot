@@ -146,6 +146,21 @@ bot.onText(cmd_regex('joinbb'), function(msg, match) {
     saveStats()
 });
 
+bot.onText(cmd_regex('players'), function(msg, match) {
+    if (msg.chat.type != "group" && msg.chat.type != "supergroup") //only can start in a group
+    {
+        bot.sendMessage(msg.chat.id, 'You gotta be in a group to do that mate!');
+        return;
+    }
+    if (!games[msg.chat.id] || games[msg.chat.id].active == false) {
+        bot.sendMessage(msg.chat.id, 'No game active!');
+        return;
+    }
+    bot.sendMessage(msg.chat.id, "The players who have joined are: \n" + playerorder, {
+        "parse_mode": "Markdown"
+    });
+});
+
 
 var questions = {};
 var rpsgames = {};
