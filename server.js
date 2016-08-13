@@ -352,42 +352,40 @@ function rps(group, pointer, victim, asker, question) {
     var opts = {
       reply_markup: JSON.stringify({
           inline_keyboard: [
-              [{ text: '✊', callback_data: JSON.stringify({index: 0, vs: 54321, gid: cnt})},
-               { text: '✋', callback_data: JSON.stringify({index: 1, vs: 54321, gid: cnt})},
-               { text: '✌️', callback_data: JSON.stringify({index: 2, vs: 54321, gid: cnt})}]
+              [{ text: '✊', callback_data: JSON.stringify({index: 0, vs: 54321, gid: 12345})},
+               { text: '✋', callback_data: JSON.stringify({index: 1, vs: 54321, gid: 12345})},
+               { text: '✌️', callback_data: JSON.stringify({index: 2, vs: 54321, gid: 12345})}]
           ],
       })
     }; // make the inline keyboard
 
-    rpsgames[cnt] = { //record details of each game
-                      asker: asker,
-                      question: question}
-    rpsgames[cnt][victim.id] = victim;
-    rpsgames[cnt][victim.id].role = 0; //0 = victim
-    rpsgames[cnt][victim.id].selected = -1;//selected (rock paper or scissors)
-    rpsgames[cnt][victim.id].vs = pointer.id;
-    rpsgames[cnt][pointer.id] = victim;
-    rpsgames[cnt][pointer.id].role = 1;
-    rpsgames[cnt][pointer.id].selected = -1;
-    rpsgames[cnt][pointer.id].vs = victim.id;
-    cnt++;//increment game id
+    // to pointer
 
-    inrps[pointer.id] = (inrps[pointer.id] || 0) + 1;
-    inrps[victim.id] = (inrps[victim.id] || 0) + 1;
-
-    bot.sendMessage(pointer.id, 'ROCK-PAPER-SCISSORS with ' + compose_name(victim) + '!', opts)
-        .then(function(sent) {
-            var chatId = sent.chat.id;
-            var messageId = sent.message_id;
-            rpsmsgs[messageId] = true;
-        });
-    bot.sendMessage(victim.id, compose_name(pointer) + ' pointed at you.\nROCK-PAPER-SCISSORS!', opts)
-        .then(function(sent) {
-            var chatId = sent.chat.id;
-            var messageId = sent.message_id;
-            rpsmsgs[messageId] = true;
-        });
-
+    Promise.all([
+      bot.sendMessage(pointer.id, 'ROCK-PAPER-SCISSORS with ' + compose_name(victim) + '!', opts), //to pointer
+      bot.sendMessage(victim.id, compose_name(pointer) + ' pointed at you.\nROCK-PAPER-SCISSORS!', opts) //to victim
+    ]).then(function(msgs) {
+      var p_msg = msgs[0].message_id; //pointer message
+      var v_msg = msgs[1].message_id; //victim message
+        rpsgames[p_msg] = {
+          asker: asker,
+          question: question,
+          group: group,
+          vs: v_msg,
+          vs_p: victim,
+          role: 1,
+          selected: -1
+        };
+        rpsgames[v_msg] = {
+          asker: asker,
+          question: question,
+          group: group,
+          vs: p_msg,
+          vs_p: pointer,
+          role: 0,
+          selected: -1
+        }
+    });
          stats.totalPointedAt++;
     saveStats();
 }
@@ -415,51 +413,58 @@ bot.on('callback_query', function(msg) {
         questions[msg.message.message_id] = false;// this message no longer is valid
     }
 
-    if (rpsmsgs[msg.message.message_id]) { // on reply to a rock paper scissors question
+    if (rpsgames[msg.message.message_id]) { // on reply to a rock paper scissors question
         var data = JSON.parse(msg.data); //receive data
         var gid = data.gid;
         var ind = data.index;
+        var msgid = msg.message.message_id;
         if (ind == -1) {
             bot.sendMessage(user.id, "Don't send random stuff to me ( like a H4X0R ).");
         }
-        rpsgames[gid][user.id].selected = ind; //get the selected index
+
+        rpsgames[msgid].selected = ind; //get the selected index
         bot.editMessageText('You: ' + rpse[ind], { //remove the inline keyboard so the user doesnt click twice
             chat_id: msg.message.chat.id,
             message_id: msg.message.message_id
         });
 
-        if (rpsgames[gid][rpsgames[gid][user.id].vs].selected == -1) return; //the other person has not selected
+        if (rpsgames[rpsgames[msgid].vs].selected == -1) return; //the other person has not selected
 
-        var victim, pointer; //figure out who is pointer and victim
-        if (rpsgames[gid][user.id].role == 0) {
+        var victim, pointer; //figure out who is pointer and victim then get the selections
+        var victim_s, pointer_s;
+        if (rpsgames[msgid].role == 0) {
             victim = user;
-            pointer = rpsgames[gid][rpsgames[gid][user.id].vs];
+            pointer = rpsgames[msgid].vs_p;
+            victim_s = rpsgames[msgid].selected;
+            pointer_s = rpsgames[rpsgames[msgid].vs].selected;
         }
-        if (rpsgames[gid][user.id].role == 1) {
+        if (rpsgames[msgid].role == 1) {
             pointer = user;
-            victim = rpsgames[gid][rpsgames[gid][user.id].vs];
+            victim = rpsgames[msgid].vs_p;
+            pointer_s = rpsgames[msgid].selected;
+            victim_s = rpsgames[rpsgames[msgid].vs].selected;
         }
+
         //reveal choices
-        bot.sendMessage(victim.id, compose_name(pointer) + ' selected: ' + rpse[rpsgames[gid][pointer.id].selected]);
-        bot.sendMessage(pointer.id, compose_name(victim) + ' selected: ' + rpse[rpsgames[gid][victim.id].selected]);
-        //get the selections
-        var victim_s = rpsgames[gid][victim.id].selected;
-        var pointer_s = rpsgames[gid][pointer.id].selected;
+        bot.sendMessage(victim.id, compose_name(victim) + ' selected: ' + rpse[victim_s]);
+        bot.sendMessage(pointer.id, compose_name(pointer) + ' selected: ' + rpse[pointer_s]);
         //draw condition, ask them play again
         if (victim_s == pointer_s && victim.id != pointer.id) { //second if is for debugging
             setTimeout(function(a){bot.sendMessage(a, 'Draw, select again');} , 700, victim.id);
             setTimeout(function(a){bot.sendMessage(a, 'Draw, select again');} , 700, pointer.id);
             //bot.sendMessage(victim, 'Draw, select again');
             //bot.sendMessage(pointer, 'Draw, select again');
-            rpsgames[gid][victim.id].selected = -1;
-            rpsgames[gid][pointer.id].selected = -1;
+            //rematch
+            rps(rpsgames[msgid].group, pointer, victim, rpsgames[msgid].asker, rpsgames[msgid].question)
+            rpsgames[msgid] = false;
+            rpsgames[rpsgames[msgid].vs] = false;
+
             return;
         }
-        inrps[victim.id]--;
-        inrps[pointer.id]--;
-        var group = rpsgames[gid].group;
-        var asker = rpsgames[gid].asker;
-        var question = rpsgames[gid].question;
+
+        var group = rpsgames[msgid].group;
+        var asker = rpsgames[msgid].asker;
+        var question = rpsgames[msgid].question;
         //get info and figure out who wins
         if ((victim_s == 0 && pointer_s == 2) ||
             (victim_s == 1 && pointer_s == 0) ||
@@ -491,7 +496,7 @@ bot.on('callback_query', function(msg) {
           bot.sendMessage(group.id, compose_name(asker) + "'s question is " + question + " DEBUG VICTIM: " + compose_name(victim))
         }
         statsdb.saveQuestion(question, asker, pointer,victim);
-        delete rpsgames[gid];
+        delete rpsgames[msgid];
 
         //GAME HAS ENDED here
 
@@ -524,12 +529,13 @@ bot.onText(/\/debugrps/i, function(msg) {
         })
     };
     var user = msg.from;
-    rpsgames[user.id] = {selected: -1, vs: user, asker: user, group: user, pointer: user, role:0,question:'debugqn'};
+
     bot.sendMessage(chatId, 'ROCK-PAPER-SCISSORS!', opts)
         .then(function(sent) {
             var chatId = sent.chat.id;
             var messageId = sent.message_id;
             console.log(chatId, messageId);
+            rpsgames[messageId] = {selected: -1, vs: messageId, vs_p: user, asker: user, group: user, pointer: user, role:0,question:'debugqn'};
             bot.onReplyToMessage(chatId, messageId, function(msg) {
                 console.log(msg);
                 bot.sendMessage(chatId, 'Received ' + msg.text);
