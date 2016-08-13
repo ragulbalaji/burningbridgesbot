@@ -156,6 +156,13 @@ bot.onText(cmd_regex('players'), function(msg, match) {
         bot.sendMessage(msg.chat.id, 'No game active!');
         return;
     }
+    var players = Object.keys(games[msg.chat.id].players);
+    games[chat.id].playerorder = players;
+
+    var playerorder = "";
+    for (var i = 0; i < players.length; i++) {
+        playerorder += (i + 1).toString() + ". *" + compose_name(games[chat.id].players[players[i]]) + "*\n";
+    }
     bot.sendMessage(msg.chat.id, "The players who have joined are: \n" + playerorder, {
         "parse_mode": "Markdown"
     });
