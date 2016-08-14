@@ -1,9 +1,9 @@
-var TelegramBot = require('node-telegram-bot-api');
+const TelegramBot = require('node-telegram-bot-api-latest');
 const fs = require('fs');
-var chance = new require('chance')();
-var adage = require('adage');
-var gameutil = require('./lib/util');
-var debug = require('debug');
+const chance = new require('chance')();
+const adage = require('adage');
+const gameutil = require('./lib/util');
+const debug = require('debug');
 
 var token = fs.readFileSync('token.txt').toString().split('\n')[0];
 // Setup polling way
@@ -77,6 +77,7 @@ function compose_name(user) {
     return (user.first_name || "") + ' ' + (user.last_name || "");
 }
 
+require('./commands/help')(bot);
 // Matches /echo [whatever]
 bot.onText(cmd_regex('start'), function(msg, match) {
     var user = msg.from;
