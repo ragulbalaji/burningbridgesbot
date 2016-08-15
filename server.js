@@ -4,7 +4,7 @@ const chance = new require('chance')();
 const adage = require('adage');
 const gameutil = require('./lib/util');
 const debug = require('debug');
-
+const _ = require('lodash');
 var token = fs.readFileSync('token.txt').toString().split('\n')[0];
 // Setup polling way
 var bot = new TelegramBot(token, {
@@ -120,7 +120,7 @@ bot.onText(cmd_regex('startbb'), function(msg, match) {
     stats.joinedPlayers++;
     saveStats()
 
-    games[chat.id] = games[chat.id] ||
+    games[chat.id] =
       {
         active: true,//game is active
         players: {//object of players
@@ -316,10 +316,10 @@ function askq(group, asker, pointer) {
                     if (players[i] != pointer_id) //exclude the pointer
                         playeroptions.push([{
                             text: compose_name(games[group_id].players[players[i]]),
-                            callback_data: JSON.stringify(game.players[players[i]]) //we send the whole json object for the player as callback data, so no need for users global object
+                            callback_data: JSON.stringify(_.pick(game.players[players[i]],['id','first_name','last_name'])) //we send the whole json object for the player as callback data, so no need for users global object
                         }]);
                 } //compose inline keyboardo ptions
-                //console.log(playeroptions);
+                console.log(playeroptions);
                 //actually send the options
                 bot.sendMessage(pointer_id, 'Imma point at: ', {
                         reply_markup: JSON.stringify({
