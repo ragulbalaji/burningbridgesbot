@@ -15,7 +15,7 @@ var userdb = require('./lib/users');
 var statsdb = require('./lib/stats');
 
 var games = {};
-
+var rpse = ['✊', '✋', '✌️'];
 // START of STATISTICSjs
 var stats = {
     gameStartAttempts: 0,
