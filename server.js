@@ -243,7 +243,7 @@ function startround(group) {
 
     var players = games[group_id].playerorder; //get the array of players
     var playerobj = games[group_id].players; //associative array of playerid -> player object
-    gameutil.arrayShuffle(players); //gameutil.arrayShuffle them
+    _.shuffle(players); //_.shuffle them
     var playerz = [];
     var numpairstochoose = chance.integer({
         min: 1,
@@ -271,7 +271,8 @@ function askq(group, asker, pointer) {
     var opts = {
             reply_markup: JSON.stringify({
                 force_reply: true
-            })
+            }),
+            parse_mode: "Markdown"
         }
         //get the necessary info
     var asker_id = asker.id;
@@ -281,13 +282,25 @@ function askq(group, asker, pointer) {
     var players = games[group_id].playerorder; //player id array
 
     //ask a question
-    bot.sendMessage(asker_id, '🤓😎😇 Ask ' + gameutil.name(pointer) + ' a Question!\nNote, you NEED to reply (tap & hold for options) to this message', opts) //ask the question
+    bot.sendMessage(asker_id, '🤓😎😇 Ask *' + gameutil.name(pointer) + '* a Question!\nYou have 5 minutes\nNote, you NEED to reply (tap & hold for options) to this message', opts) //ask the question
         .then(function(sent) {
             var chatId = sent.chat.id;
             var messageId = sent.message_id;
+            var timeout = false;
+            /*setTimeout(function(){
+              timeout = true;
+              bot.editMessageText('Time\'s up!', { //remove the inline keyboard so they dont click twice
+                  chat_id: chatId,
+                  message_id: messageId
+              }); //timeout
+            }, 5 * 60 * 1000)*/ // 5 minutes is up
             bot.onReplyToMessage(chatId, messageId, function(message) { //wait for reply
-
-                bot.sendMessage(chatId, 'Asked \'' + message.text + '\''); //reply back the question
+                if(timeout)return;
+                bot.editMessageText('Asked _\'' + message.text + '\'_', { //remove the inline keyboard so they dont click twice
+                    chat_id: chatId,
+                    message_id: messageId,
+                    parse_mode: "Markdown"
+                }); //reply back the question
                 bot.sendMessage(pointer_id, gameutil.name(asker) + ' asked you "' + message.text + '"'); //send to pointer the question
                 var playeroptions = []; //for each player, construct a button, each with its own line
                 for (var i = 0; i < players.length; i++) {
@@ -494,25 +507,29 @@ bot.on('callback_query', function(msg) {
 
         //GAME HAS ENDED here
 
-        if (games[group.id].roundsleft == 0) // if there are no more rounds left end the game
-        {
-            //GAME really ENDED
-            games[group.id] = {
-                active: false
-            };
-            bot.sendMessage(group.id, "Game has ended!");
-            stats.totalPlays++;
-            saveStats()
-        } else //else you start the round again
-        {
-            setTimeout(startround, 1000, group);
-        }
+
     }
 });
 
-
+function nextround(group)
+{
+  if (games[group.id].roundsleft == 0) // if there are no more rounds left end the game
+  {
+      //GAME really ENDED
+      games[group.id] = {
+          active: false
+      };
+      bot.sendMessage(group.id, "Game has ended!");
+      stats.totalPlays++;
+      saveStats()
+  } else //else you start the round again
+  {
+      setTimeout(startround, 1000, group);
+  }
+}
 
 bot.on('message', function(msg) {
+	console.log(gameutil.cmd('joinbb').exec(msg.text));
     var userid = msg.from.id;
     statsdb.increment('messages');
     userdb.find(msg.from)
